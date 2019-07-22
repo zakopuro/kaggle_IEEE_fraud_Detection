@@ -110,6 +110,7 @@ def del_colmuns(df):
         'V104', 'V311', 'V115', 'V109', 'V119', 'V321', 'V114', 'V133', 'V122', 'V319', 'V105', 'V112', 'V118', 'V117',
         'V121', 'V108', 'V135', 'V320', 'V303', 'V297', 'V120']
     # list_del_col = ['TransactionDT']
+    
     df = df.drop(list_corr,axis=1)
     return df
 
