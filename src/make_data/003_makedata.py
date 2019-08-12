@@ -44,25 +44,37 @@ def chg_email_feature(df,email_list):
     df.loc[df['P_emaildomain'].isin(email_google),'P_emaildomain'] = 'Google'
     df.loc[df['P_emaildomain'].isin(email_other),'P_emaildomain'] = 'Other'
 
-    df.loc[df['P_emaildomain'].isin(email_yahoo),'P_emaildomain'] = 'Yahoo'
-    df.loc[df['P_emaildomain'].isin(email_microsoft),'P_emaildomain'] = 'Microsoft'
-    df.loc[df['P_emaildomain'].isin(email_apple),'P_emaildomain'] = 'Apple'
-    df.loc[df['P_emaildomain'].isin(email_att),'P_emaildomain'] = 'ATT'
-    df.loc[df['P_emaildomain'].isin(email_cent),'P_emaildomain'] = 'Cent'
-    df.loc[df['P_emaildomain'].isin(email_aol),'P_emaildomain'] = 'AOL'
-    df.loc[df['P_emaildomain'].isin(email_spec),'P_emaildomain'] = 'Spec'
-    df.loc[df['P_emaildomain'].isin(email_google),'P_emaildomain'] = 'Google'
-    df.loc[df['P_emaildomain'].isin(email_other),'P_emaildomain'] = 'Other'
+    df.loc[df['R_emaildomain'].isin(email_yahoo),'R_emaildomain'] = 'Yahoo'
+    df.loc[df['R_emaildomain'].isin(email_microsoft),'R_emaildomain'] = 'Microsoft'
+    df.loc[df['R_emaildomain'].isin(email_apple),'R_emaildomain'] = 'Apple'
+    df.loc[df['R_emaildomain'].isin(email_att),'R_emaildomain'] = 'ATT'
+    df.loc[df['R_emaildomain'].isin(email_cent),'R_emaildomain'] = 'Cent'
+    df.loc[df['R_emaildomain'].isin(email_aol),'R_emaildomain'] = 'AOL'
+    df.loc[df['R_emaildomain'].isin(email_spec),'R_emaildomain'] = 'Spec'
+    df.loc[df['R_emaildomain'].isin(email_google),'R_emaildomain'] = 'Google'
+    df.loc[df['R_emaildomain'].isin(email_other),'R_emaildomain'] = 'Other'
 
     return df
 
 
 def make_email_feature(df_train,df_test):
-    pemail_list = list(df_train['P_emaildomain'].drop_duplicates()) + list(df_test['P_emaildomain'].drop_duplicates())
-    remail_list = list(df_train['R_emaildomain'].drop_duplicates()) + list(df_test['R_emaildomain'].drop_duplicates())
-    email_list = set(pemail_list + remail_list)
-    df_train = chg_email_feature(df_train,email_list)
-    df_test = chg_email_feature(df_test,email_list)
+    # protonmail.comはisFraudが１の可能性が高い
+    df_train.loc[(df_train['R_emaildomain'] == 'protonmail.com') & (df_train['P_emaildomain'] == 'protonmail.com'),'both_pro_mail'] = 1
+    df_test.loc[(df_test['R_emaildomain'] == 'protonmail.com') & (df_test['P_emaildomain'] == 'protonmail.com'),'both_pro_mail'] = 1
+    df_train['both_pro_mail'] = df_train['both_pro_mail'].fillna(0)
+    df_test['both_pro_mail'] = df_test['both_pro_mail'].fillna(0)
+
+    df_train.loc[(df_train['R_emaildomain'] == 'protonmail.com') | (df_train['P_emaildomain'] == 'protonmail.com'),'pro_mail'] = 1
+    df_test.loc[(df_test['R_emaildomain'] == 'protonmail.com') | (df_test['P_emaildomain'] == 'protonmail.com'),'pro_mail'] = 1
+    df_train['pro_mail'] = df_train['pro_mail'].fillna(0)
+    df_test['pro_mail'] = df_test['pro_mail'].fillna(0)
+
+
+    # pemail_list = list(df_train['P_emaildomain'].drop_duplicates()) + list(df_test['P_emaildomain'].drop_duplicates())
+    # remail_list = list(df_train['R_emaildomain'].drop_duplicates()) + list(df_test['R_emaildomain'].drop_duplicates())
+    # email_list = set(pemail_list + remail_list)
+    # df_train = chg_email_feature(df_train,email_list)
+    # df_test = chg_email_feature(df_test,email_list)
 
     return df_train,df_test
 
@@ -73,7 +85,7 @@ def featrue_engineering(df_train,df_test):
     # 日付情報を追加
     df_train = make_data_feature(df_train)
     df_test = make_data_feature(df_test)
-    # emailの情報を減らす
+    # email系
     df_train,df_test = make_email_feature(df_train,df_test)
 
     return df_train,df_test
@@ -108,9 +120,9 @@ def del_colmuns(df):
     list_corr = ['V300', 'V309', 'V111', 'V124', 'V106', 'V125', 'V315', 'V134', 'V102', 'V123', 'V316', 'V113', 'V136', 'V305',
         'V110', 'V299', 'V289', 'V286', 'V318', 'V103', 'V304', 'V116', 'V298', 'V284', 'V293', 'V137', 'V295', 'V301',
         'V104', 'V311', 'V115', 'V109', 'V119', 'V321', 'V114', 'V133', 'V122', 'V319', 'V105', 'V112', 'V118', 'V117',
-        'V121', 'V108', 'V135', 'V320', 'V303', 'V297', 'V120']
+        'V121', 'V108', 'V135', 'V320', 'V303', 'V297', 'V120','TransactionDT']
     # list_del_col = ['TransactionDT']
-    
+
     df = df.drop(list_corr,axis=1)
     return df
 
@@ -148,8 +160,8 @@ def main():
     print('Label Encoder')
 
 
-    df_train.to_csv('../IEEE_Fraud_Detection/src/make_data/data/005_train.csv')
-    df_test.to_csv('../IEEE_Fraud_Detection/src/make_data/data/005_test.csv')
+    df_train.to_csv('../IEEE_Fraud_Detection/src/make_data/data/007_train.csv')
+    df_test.to_csv('../IEEE_Fraud_Detection/src/make_data/data/007_test.csv')
 
 
 

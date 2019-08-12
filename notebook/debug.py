@@ -12,119 +12,84 @@
 #     name: mlpy36
 # ---
 
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from tqdm import tqdm
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split, StratifiedKFold,KFold
+from datetime import datetime
+from sklearn.metrics import precision_score, recall_score, confusion_matrix, accuracy_score, roc_auc_score, f1_score, roc_curve, auc,precision_recall_curve
+from sklearn import metrics
 from sklearn import preprocessing
-import pandas_profiling as pdf
-from sklearn.model_selection import TimeSeriesSplit
+import logging
 
-# +
-df_train_iden = pd.read_csv('../input/train_identity.csv')
-df_train_trans = pd.read_csv('../input/train_transaction.csv')
-df_test_iden = pd.read_csv('../input/test_identity.csv')
-df_test_trans = pd.read_csv('../input/test_transaction.csv')
+df_train = pd.read_pickle('../src/make_data/data/009_train.pkl')
+df_test = pd.read_pickle('../src/make_data/data/009_train.pkl')
 
-df_train = pd.merge(df_train_trans, df_train_iden, on='TransactionID', how='left')
-df_test = pd.merge(df_test_trans, df_test_iden, on='TransactionID', how='left')
-# -
 
-splits = TimeSeriesSplit(n_splits=5)
+class Net(nn.Module):
+    def __init__(self):
+        self.fc1 = nn.Linear(512,256)
+        self.fc2 = nn.Dropout(0.3)
+        self.fc3 = nn.Linear(256,1)
+        self.fc4 = nn.Dropout(0.2)
+        
+    def foward(self,x):
+        x = F.relu(self.fc1(x))
+        x = F.batch_norm(x)
+        x = F.relu(self.fc3(x))
+        x = F.batch_norm(x)
+        x = 
+        
 
-index = 1
-for train_index,test_index in splits.split(df_train):
-    X_train = df_train['TransactionDT'][train_index]
-    X_test = df_train['TransactionDT'][test_index]
-    plt.subplot(510 + index)
-    plt.plot(X_train)
-    plt.plot([None for i in X_train]+[x for x in X_test])
-    index += 1
 
-len(df_train)/6
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.input = nn.Linear(512)
+        
+        
+        
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
 
-# +
-train_start_index = 0
-train_end_index = int(len(df_train)/2)
-skip = int(len(df_train)/6)
-horizon = int(len(df_train)/6)
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 5 * 5)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
 
-SPLITS = 3
-for split in range(SPLITS):
-    test_start_index = train_end_index
-    test_end_index = test_start_index + horizon
-    
-    X_train = df_train[train_start_index:train_end_index]
-    X_test = df_train[test_start_index:test_end_index]
-    
-    train_start_index += skip
-    train_end_index += skip
-    print(X_train.index)
-    print(X_test.index)
-# -
+        return x
 
-X_train.index
+model = Net()
 
-X_test.index
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(params=model.parameters(),lr=0.01)
 
-df_train.shape
 
-df_train = pd.read_csv('../src/make_data/data/003_train.csv',index_col='TransactionID')
-df_test = pd.read_csv('../src/make_data/data/003_test.csv',index_col='TransactionID')
+def train_model(model):
+    model.train()
 
-df_train['day']
 
-import pickle
-import xgboost as xgb
+train_model(model)
 
-filename = '../model/003_xgb.sav'
-loaded_model = pickle.load(open(filename,'rb'))
-df_train = pd.read_csv('../src/make_data/data/003_train.csv',index_col='TransactionID')
+sub1 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/024_sub_lgb.csv')
+sub2 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/kernel_NN.csv')
+sub = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/input/sample_submission.csv')
 
-fti = loaded_model.feature_importances_
-train = df_train.drop('isFraud',axis=1)
+sub['isFraud'] = sub1['isFraud']*0.9 + sub2['isFraud']*0.1
 
-# +
-dict = {"feat":np.arange(0,len(train.columns)) , 'importance': np.arange(0,len(train.columns),dtype=float)}
-df_feat_imp = pd.DataFrame(dict)
-for i,feat in enumerate(train.columns):
-    df_feat_imp['feat'][i] = feat
-    df_feat_imp['importance'][i] = loaded_model.feature_importances_[i]
+sub.head()
 
-df_feat_imp = df_feat_imp.sort_values(by='importance',ascending=True)
-
-# drop_list = list(df_feat_imp['feat'].head(10))
-# -
-
-df_feat_imp.to_csv('../src/make_data/data/fti_list.csv',index=False)
-
-fti = pd.read_csv('../src/make_data/data/fti_list.csv')
-
-fti_drop_list = list(df_feat_imp['feat'].head(30))
-
-fti_drop_list
-
-fti.head(30)
-
-# +
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-fig, ax = plt.subplots(1, 2, figsize=(18,4))
-
-time_val = df_train['TransactionAmt'].values
-
-sns.distplot(time_val, ax=ax[0], color='r')
-ax[0].set_title('Distribution of TransactionAmt', fontsize=14)
-ax[1].set_xlim([min(time_val), max(time_val)])
-
-sns.distplot(np.log(time_val), ax=ax[1], color='b')
-ax[1].set_title('Distribution of LOG TransactionAmt', fontsize=14)
-ax[1].set_xlim([min(np.log(time_val)), max(np.log(time_val))])
-
-plt.show()
-# -
-
-plt.hist(np.log(df_train['TransactionAmt']))
+sub.to_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/026_sub_lgb09+NN01.csv',index=False)
 
 

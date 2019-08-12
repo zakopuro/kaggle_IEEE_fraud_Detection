@@ -5,10 +5,15 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 import pickle
 from sklearn.model_selection import train_test_split,TimeSeriesSplit
+from imblearn.under_sampling import RandomUnderSampler
+
+def calibration(y_proba, beta):
+    return y_proba / (y_proba + (1 - y_proba) / beta)
+
 
 def main():
-    df_train = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/005_train.csv',index_col='TransactionID')
-    df_test = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/005_test.csv',index_col='TransactionID')
+    df_train = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/007_train.csv',index_col='TransactionID')
+    df_test = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/007_test.csv',index_col='TransactionID')
     # fti = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/fti_list.csv')
     sub = pd.read_csv('../IEEE_Fraud_Detection/input/sample_submission.csv')
     print('data')
@@ -17,8 +22,7 @@ def main():
     # X_train = X_train.drop(fti_drop_list,axis=1)
     y_train = df_train['isFraud'].copy()
     X_test = df_test.copy()
-    X_test = X_test.drop(['TransactionDT'],axis=1)
-    # X_test = X_test.drop(fti_drop_list,axis=1)
+    X_test = X_test.drop('TransactionDT',axis=1)
 
 
     xgb_paramas = {
@@ -30,7 +34,7 @@ def main():
                     'missing':-999,
                     'gamma':0.2,
                     'alpha':4,
-                    'tree_method':'hist',
+                    # 'tree_method':'hist',
                     'eval_metric': 'auc'
     }
         # n_estimators=500,
@@ -79,15 +83,28 @@ def main():
 
     #     train_start_index += skip
     #     train_end_index += skip
-
     # xgb_model.fit(X_train,y_train)
+    # アンダーサンプリング
+    # smpler = RandomUnderSampler(sampling_strategy={0:y_train.sum(),1:y_train.sum()})
+    # X_train_sampled,y_train_sampled=smpler.fit_sample(X_train,y_train)
+    # X_train_sampled = pd.DataFrame(X_train_sampled,columns=X_train.columns)
+    # # y_train_sampled = pd.DataFrame(y_train_sampled,columns=y_train.columns)
+
+    # sampling_rate = y_train.sum()/len(y_train)
+    # xgb_model = xgb.XGBClassifier(**xgb_paramas)
+    # xgb_model.fit(X_train_sampled,y_train_sampled)
+    # print('test')
+    # y_preds = calibration(xgb_model.predict_proba(X_test)[:,1],sampling_rate)
+
+
     n_fold = 5
-    # folds = TimeSeriesSplit(n_splits=n_fold)
-    folds = KFold(n_splits=5)
+    folds = TimeSeriesSplit(n_splits=n_fold)
+    folds = KFold(n_splits=n_fold)
     # EPOCHS = 3
     # kf = KFold(n_splits = EPOCHS, shuffle = True)
     y_preds = np.zeros(sub.shape[0])
-    y_oof = np.zeros(X_train.shape[0])
+    y_oof = np.zeros(y_train.shape[0])
+
     for tr_idx, val_idx in folds.split(X_train, y_train):
         xgb_model = xgb.XGBClassifier(**xgb_paramas)
 
@@ -97,16 +114,15 @@ def main():
         y_pred_train = xgb_model.predict_proba(X_vl)[:,1]
         y_oof[val_idx] = y_pred_train
         print('ROC AUC {}'.format(roc_auc_score(y_vl, y_pred_train)))
-
         y_preds+= xgb_model.predict_proba(X_test)[:,1] / n_fold
 
     print('fit')
-    filename = '../IEEE_Fraud_Detection/model/012_xgb.sav'
+    filename = '../IEEE_Fraud_Detection/model/021_xgb.sav'
     pickle.dump(xgb_model,open(filename,'wb'))
     # sub['isFraud'] = xgb_model.predict_proba(X_test)[]
     # sub['isFraud'] = xgb_model.predict_proba(X_test)[:,1]
     sub['isFraud'] = y_preds
-    sub.to_csv('../IEEE_Fraud_Detection/output/012_sub_xgb.csv',index=False)
+    sub.to_csv('../IEEE_Fraud_Detection/output/021_sub_xgb.csv',index=False)
     print('end')
 
 

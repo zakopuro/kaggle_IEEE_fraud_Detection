@@ -19,50 +19,42 @@ import datetime
 import seaborn as sns
 from tqdm import tqdm
 from sklearn import preprocessing
+import pickle
+import lightgbm as lgb
+from scipy import stats
 
-# +
-df_train_iden = pd.read_csv('../input/train_identity.csv',index_col='TransactionID')
-df_train_trans = pd.read_csv('../input/train_transaction.csv',index_col='TransactionID')
-df_test_iden = pd.read_csv('../input/test_identity.csv',index_col='TransactionID')
-df_test_trans = pd.read_csv('../input/test_transaction.csv',index_col='TransactionID')
 
-df_train = pd.merge(df_train_trans, df_train_iden, on='TransactionID', how='left')
-df_test = pd.merge(df_test_trans, df_test_iden, on='TransactionID', how='left')
-# -
+df_train = pd.read_pickle('../input/train.pkl')
+df_test = pd.read_pickle('../input/test.pkl')
 
-df_train_DT = pd.read_csv('../src/make_data/data/005_train.csv',index_col='TransactionID')
+pd.set_option('display.max_columns', 500)
+df_train.head()
 
-col_list = list(df_train.columns)
+file_name = '/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/model/024_lgb.sav'
+lgb_model = pickle.load(open(file_name,'rb'))
 
-col_list
+lgb.plot_importance(lgb_model,max_num_features=30,figsize=(12,6))
 
-plt.hist(df_train['card2'])
+temp = pd.concat([df_train['card1'], df_test['card1']], ignore_index=True).value_counts(dropna=False)
+df_train['card1_count'] = df_train['card1'].map(temp)
+df_test['card1_count'] = df_test['card1'].map(temp)
 
-# sns.countplot(y='isFraud', x="ProductCD", data=df_train)
-sns.countplot(x="ProductCD",hue = "isFraud", data=df_train)
+plt.scatter(df_train['C9'],df_train['C5'])
 
-sns.countplot(x="card2",hue = "isFraud", data=df_train)
+# x = df_train['C13']
+# plt.hist(x)
+len(df_train[(df_train['C13']==0) & (df_train['isFraud'] == 1)])/len(df_train[df_train['C13'] == 0])
 
-for card2 in df_train['card2'].unique():
-    num_0 = len(df_train[(df_train['isFraud'] == 0) & (df_train['card2'] == card2)])
-    num_1 = len(df_train[(df_train['isFraud'] == 1) & (df_train['card2'] == card2)])
-    if num_0 == 0:
-        num_0 = 0.01
-    isf_per = num_1/num_0
-    if isf_per > 0.5:
-        print(card2)
 
-card2 = [176,405,289,319]
-num_0 = len(df_train[(df_train['isFraud'] == 0) & (df_train['card2'] == card2)])
-num_1 = len(df_train[(df_train['isFraud'] == 1) & (df_train['card2'] == card2)])
-print(num_0,num_1)
 
-for card2 in df_train['card2'].unique():
-    num_0 = len(df_train[(df_train['isFraud'] == 0) & (df_train['card2'] == card2)])
-    num_1 = len(df_train[(df_train['isFraud'] == 1) & (df_train['card2'] == card2)])
-#     isf_per = num_1/num_0
-    if num_1 == 0:
-        print(card2)
-        print()
+plt.hist(np.log(df_train['card1_count']))
+
+x,_ = stats.boxcox(df_train['card1_count'])
+plt.hist(x)
+
+plt.hist(np.log(df_test['card1']/df_test['card2']))
+# plt.scatter(df_train[df_train['isFraud'] == 1]['card1'],df_train[df_train['isFraud'] == 1]['card2'])
+
+plt.scatter(df_train['addr1'],df_train['isFraud'])
 
 
