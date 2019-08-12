@@ -1,12 +1,9 @@
 # https://www.kaggle.com/timon88/lgbm-baseline-small-fe-no-blend
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import KFold
 from tqdm import tqdm
 from sklearn.preprocessing import LabelEncoder
 import datetime
-import lightgbm as lgb
 
 
 

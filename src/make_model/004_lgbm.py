@@ -12,8 +12,8 @@ import pickle
 import logging
 
 def main():
-    df_train = pd.read_pickle('../IEEE_Fraud_Detection/src/make_data/data/012_train.pkl')
-    df_test = pd.read_pickle('../IEEE_Fraud_Detection/src/make_data/data/012_test.pkl')
+    df_train = pd.read_pickle('../IEEE_Fraud_Detection/src/make_data/data/013_train.pkl')
+    df_test = pd.read_pickle('../IEEE_Fraud_Detection/src/make_data/data/013_test.pkl')
     target = df_train['isFraud'].copy()
     X_train = df_train.drop('isFraud',axis=1)
     X_train.drop('TransactionDT',axis=1,inplace=True)
@@ -48,7 +48,7 @@ def main():
     oof = np.zeros(len(X_train))
     predictions = np.zeros(len(X_test))
 
-    log_file = '../IEEE_Fraud_Detection/src/LOG/024_lgb.log'
+    log_file = '../IEEE_Fraud_Detection/src/LOG/027_lgb.log'
     logging.basicConfig(filename=log_file)
     for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train.values, target.values)):
         print("Fold {}".format(fold_))
@@ -75,12 +75,12 @@ def main():
 
         predictions += lgb_model.predict(X_test) / splits
 
-    filename = '../IEEE_Fraud_Detection/model/024_lgb.sav'
+    filename = '../IEEE_Fraud_Detection/model/027_lgb.sav'
     pickle.dump(lgb_model,open(filename,'wb'))
 
     sub = pd.read_csv('../IEEE_Fraud_Detection/input/sample_submission.csv')
     sub['isFraud'] = predictions
-    sub.to_csv('../IEEE_Fraud_Detection/output/024_sub_lgb.csv',index=False)
+    sub.to_csv('../IEEE_Fraud_Detection/output/027_sub_lgb.csv',index=False)
     print('end')
 
 

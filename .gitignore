@@ -3,3 +3,5 @@ output/
 .ipynb_checkpoints/
 .vscode/
 *.csv
+*.pkl
+*.sav
