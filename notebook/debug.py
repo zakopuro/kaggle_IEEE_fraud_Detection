@@ -92,4 +92,5 @@ sub.head()
 
 sub.to_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/026_sub_lgb09+NN01.csv',index=False)
 
-
+array([0.00061544, 0.00123226, 0.00236311, ..., 0.00231565, 0.00509864,
+       0.00301928])
