@@ -82,14 +82,14 @@ def train_model(model):
 
 train_model(model)
 
-sub1 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/024_sub_lgb.csv')
-sub2 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/kernel_NN.csv')
+sub1 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/028_sub_lgb.csv')
+sub2 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/029_sub_lgb.csv')
 sub = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/input/sample_submission.csv')
 
-sub['isFraud'] = sub1['isFraud']*0.9 + sub2['isFraud']*0.1
+sub['isFraud'] = sub1['isFraud']*0.4 + sub2['isFraud']*0.6
 
 sub.head()
 
-sub.to_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/026_sub_lgb09+NN01.csv',index=False)
+sub.to_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/030_sub_lgb.csv',index=False)
 
 
