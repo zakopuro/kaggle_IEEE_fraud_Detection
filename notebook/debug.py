@@ -25,6 +25,9 @@ from sklearn.metrics import precision_score, recall_score, confusion_matrix, acc
 from sklearn import metrics
 from sklearn import preprocessing
 import logging
+import matplotlib.pyplot as plt
+import pickle
+import lightgbm as lgb
 
 df_train = pd.read_pickle('../src/make_data/data/009_train.pkl')
 df_test = pd.read_pickle('../src/make_data/data/009_train.pkl')
@@ -43,7 +46,7 @@ class Net(nn.Module):
         x = F.relu(self.fc3(x))
         x = F.batch_norm(x)
         x = 
-        
+
 
 
 class Net(nn.Module):
@@ -82,14 +85,29 @@ def train_model(model):
 
 train_model(model)
 
-sub1 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/028_sub_lgb.csv')
-sub2 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/029_sub_lgb.csv')
+sub1 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/031_sub_lgb.csv')
+sub2 = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/033_sub_lgb.csv')
 sub = pd.read_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/input/sample_submission.csv')
 
-sub['isFraud'] = sub1['isFraud']*0.4 + sub2['isFraud']*0.6
+sub['isFraud'] = sub1['isFraud']*0.2 + sub2['isFraud']*0.8
 
 sub.head()
 
-sub.to_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/030_sub_lgb.csv',index=False)
+sub.to_csv('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/output/035_sub_lgb.csv',index=False)
+
+train = pd.read_pickle('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/input/train.pkl')
+test = pd.read_pickle('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/input/test.pkl')
+
+pd.set_option('display.max_columns', 500)
+train.head()
+
+df = train
+# df['card1'].astype(str)+'_'+df['card2'].astype(str)+'_'+df['card3'].astype(str)+'_'+df['card4'].astype(str)
+
+make_train = pd.read_pickle('../src/make_data/data/017_train.pkl')
+
+lgb_model = pickle.load(open('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/model/030_lgb.sav', 'rb'))
+
+lgb.plot_importance(lgb_model,max_num_features=30)
 
 

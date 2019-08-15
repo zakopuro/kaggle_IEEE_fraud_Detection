@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn.preprocessing import LabelEncoder
 import datetime
-
+import itertools
 
 
 def corret_card_id(x):
@@ -62,6 +62,28 @@ def make_featuter(df):
     df['card1/addr1'] = np.log(df['card1']/df['addr1'])
     df['card2/addr1'] = np.log(df['card2']/df['addr1'])
 
+    # https://www.kaggle.com/kyakovlev/ieee-gb-2-make-amount-useful-again?scriptVersionId=18889353
+    df['uid'] = df['card1'].astype(str)+'_'+df['card2'].astype(str)+'_'+df['card3'].astype(str)+'_'+df['card4'].astype(str)
+    df['uid2'] = df['uid'].astype(str)+'_'+df['addr1'].astype(str)+'_'+df['addr2'].astype(str)
+    df['TransactionAmt_check'] = np.where(df['TransactionAmt'].isin(df['TransactionAmt']), 1, 0)
+    df['TransactionAmt_to_mean_card3'] = df['TransactionAmt'] / df.groupby(['card3'])['TransactionAmt'].transform('mean')
+    df['TransactionAmt_to_mean_card5'] = df['TransactionAmt'] / df.groupby(['card5'])['TransactionAmt'].transform('mean')
+    df['TransactionAmt_to_std_card3'] = df['TransactionAmt'] / df.groupby(['card3'])['TransactionAmt'].transform('std')
+    df['TransactionAmt_to_std_card5'] = df['TransactionAmt'] / df.groupby(['card5'])['TransactionAmt'].transform('std')
+    df['TransactionAmt_to_mean_uid'] = df['TransactionAmt'] / df.groupby(['uid'])['TransactionAmt'].transform('mean')
+    df['TransactionAmt_to_mean_uid2'] = df['TransactionAmt'] / df.groupby(['uid2'])['TransactionAmt'].transform('mean')
+    df['TransactionAmt_to_std_uid'] = df['TransactionAmt'] / df.groupby(['uid'])['TransactionAmt'].transform('std')
+    df['TransactionAmt_to_std_uid2'] = df['TransactionAmt'] / df.groupby(['uid2'])['TransactionAmt'].transform('std')
+    drop_list = ['uid','uid2']
+    df.drop(drop_list,axis=1,inplace=True)
+
+    # for imp_col in imp_cols:
+    #     df['TransactionAmt_to_mean_' + imp_col] = df['TransactionAmt'] / df.groupby([imp_col])['TransactionAmt'].transform('mean')
+    #     df['TransactionAmt_to_std_' + imp_col] = df['TransactionAmt'] / df.groupby([imp_col])['TransactionAmt'].transform('std')
+    #     df['TransactionAmtlog_to_mean_' + imp_col] = df['TransactionAmt_Log'] / df.groupby([imp_col])['TransactionAmt_Log'].transform('mean')
+    #     df['TransactionAmtlog_to_std_' + imp_col] = df['TransactionAmt_Log'] / df.groupby([imp_col])['TransactionAmt_Log'].transform('std')
+
+
     #https://www.kaggle.com/c/ieee-fraud-detection/discussion/100499#latest_df-579654
     emails = {'gmail': 'google', 'att.net': 'att', 'twc.com': 'spectrum', 'scranton.edu': 'other', 'optonline.net': 'other',
               'hotmail.co.uk': 'microsoft', 'comcast.net': 'other', 'yahoo.com.mx': 'yahoo', 'yahoo.fr': 'yahoo', 'yahoo.es': 'yahoo',
@@ -111,6 +133,33 @@ def make_featuter2(train,test):
     card2_temp = pd.concat([train['card2'], test['card2']], ignore_index=True).value_counts(dropna=False)
     train['card2_count'] = train['card2'].map(card2_temp)
     test['card2_count'] = test['card2'].map(card2_temp)
+    # https://www.kaggle.com/iasnobmatsu/xgb-model-with-feature-engineering
+    train['card3_count_full'] = train['card3'].map(pd.concat([train['card3'], test['card3']], ignore_index=True).value_counts(dropna=False))
+    test['card3_count_full'] = test['card3'].map(pd.concat([train['card3'], test['card3']], ignore_index=True).value_counts(dropna=False))
+    train['card4_count_full'] = train['card4'].map(pd.concat([train['card4'], test['card4']], ignore_index=True).value_counts(dropna=False))
+    test['card4_count_full'] = test['card4'].map(pd.concat([train['card4'], test['card4']], ignore_index=True).value_counts(dropna=False))
+    train['card5_count_full'] = train['card5'].map(pd.concat([train['card5'], test['card5']], ignore_index=True).value_counts(dropna=False))
+    test['card5_count_full'] = test['card5'].map(pd.concat([train['card5'], test['card5']], ignore_index=True).value_counts(dropna=False))
+    train['card6_count_full'] = train['card6'].map(pd.concat([train['card6'], test['card6']], ignore_index=True).value_counts(dropna=False))
+    test['card6_count_full'] = test['card6'].map(pd.concat([train['card6'], test['card6']], ignore_index=True).value_counts(dropna=False))
+    train['addr1_count_full'] = train['addr1'].map(pd.concat([train['addr1'], test['addr1']], ignore_index=True).value_counts(dropna=False))
+    test['addr1_count_full'] = test['addr1'].map(pd.concat([train['addr1'], test['addr1']], ignore_index=True).value_counts(dropna=False))
+    train['addr2_count_full'] = train['addr2'].map(pd.concat([train['addr2'], test['addr2']], ignore_index=True).value_counts(dropna=False))
+    test['addr2_count_full'] = test['addr2'].map(pd.concat([train['addr2'], test['addr2']], ignore_index=True).value_counts(dropna=False))
+
+    # 自作
+    # train['dist1_count_full'] = train['dist1'].map(pd.concat([train['dist1'], test['dist1']], ignore_index=True).value_counts(dropna=False))
+    # test['dist1_count_full'] = test['dist1'].map(pd.concat([train['dist1'], test['dist1']], ignore_index=True).value_counts(dropna=False))
+    # train['dist2_count_full'] = train['dist2'].map(pd.concat([train['dist2'], test['dist2']], ignore_index=True).value_counts(dropna=False))
+    # test['dist2_count_full'] = test['dist2'].map(pd.concat([train['dist2'], test['dist2']], ignore_index=True).value_counts(dropna=False))
+    # train['card1/card2_count_full'] = train['card1/card2'].map(pd.concat([train['card1/card2'], test['card1/card2']], ignore_index=True).value_counts(dropna=False))
+    # test['card1/card2_count_full'] = test['card1/card2'].map(pd.concat([train['card1/card2'], test['card1/card2']], ignore_index=True).value_counts(dropna=False))
+    # train['ccard1/addr1count_full'] = train['card1/addr1'].map(pd.concat([train['card1/addr1'], test['card1/addr1']], ignore_index=True).value_counts(dropna=False))
+    # test['card1/addr1_count_full'] = test['card1/addr1'].map(pd.concat([train['card1/addr1'], test['card1/addr1']], ignore_index=True).value_counts(dropna=False))
+    # train['card2/addr1_count_full'] = train['card2/addr1'].map(pd.concat([train['card2/addr1'], test['card2/addr1']], ignore_index=True).value_counts(dropna=False))
+    # test['card2/addr1_count_full'] = test['card2/addr1'].map(pd.concat([train['card2/addr1'], test['card2/addr1']], ignore_index=True).value_counts(dropna=False))
+
+
 
     train['TransactionAmt_decimal'] = ((train['TransactionAmt'] - train['TransactionAmt'].astype(int)) * 1000).astype(int)
     test['TransactionAmt_decimal'] = ((test['TransactionAmt'] - test['TransactionAmt'].astype(int)) * 1000).astype(int)
@@ -130,6 +179,29 @@ def make_featuter2(train,test):
     for feature in ['id_01', 'id_31', 'id_33', 'id_35', 'id_36']:
         train[feature + '_count_dist'] = train[feature].map(train[feature].value_counts(dropna=False))
         test[feature + '_count_dist'] = test[feature].map(test[feature].value_counts(dropna=False))
+
+
+    # https://www.kaggle.com/kyakovlev/ieee-gb-2-make-amount-useful-again?scriptVersionId=18889353
+    i_cols = ['card1','card2','card3','card5',
+          'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12','C13','C14',
+          'D1','D2','D3','D4','D5','D6','D7','D8','D9',
+          'addr1','addr2',
+          'dist1','dist2',
+          'P_emaildomain', 'R_emaildomain'
+         ]
+    for col in i_cols:
+        temp_df = pd.concat([train[[col]], test[[col]]])
+        fq_encode = temp_df[col].value_counts().to_dict()
+        train[col+'_fq_enc'] = train[col].map(fq_encode)
+        test[col+'_fq_enc']  = test[col].map(fq_encode)
+    for col in ['ProductCD','M4']:
+        temp_dict = train.groupby([col])['isFraud'].agg(['mean']).reset_index().rename(
+                                                            columns={'mean': col+'_target_mean'})
+        temp_dict.index = temp_dict[col].values
+        temp_dict = temp_dict[col+'_target_mean'].to_dict()
+        train[col+'_target_mean'] = train[col].map(temp_dict)
+        test[col+'_target_mean']  = test[col].map(temp_dict)
+
 
 
     return train,test
@@ -164,8 +236,8 @@ def main():
     df_train,df_test = make_featuter2(df_train,df_test)
     df_train,df_test = one_val(df_train,df_test)
 
-    df_train.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/015_train.pkl')
-    df_test.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/015_test.pkl')
+    df_train.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/020_train.pkl')
+    df_test.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/020_test.pkl')
 
 if __name__ == "__main__":
     main()
