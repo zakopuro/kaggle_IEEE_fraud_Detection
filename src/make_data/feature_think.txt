@@ -1,0 +1,139 @@
+    #https://www.kaggle.com/kyakovlev/ieee-ground-baseline-make-amount-useful-again
+    下がる？
+    # df['email_check'] = np.where(df['P_emaildomain']==df['R_emaildomain'],1,0)
+    # df['email_check_nan_all'] = np.where((df['P_emaildomain'].isna())&(df['R_emaildomain'].isna()),1,0)
+    # df['email_check_nan_any'] = np.where((df['P_emaildomain'].isna())|(df['R_emaildomain'].isna()),1,0)
+    # df['P_emaildomain'] = df['P_emaildomain'].fillna('email_not_provided')
+    # df['R_emaildomain'] = df['R_emaildomain'].fillna('email_not_provided')
+    # df['email_match_not_nan'] = np.where((df['P_emaildomain']==df['R_emaildomain'])&
+    #                                  (df['P_emaildomain']!='email_not_provided'),1,0)
+    # df['P_email_prefix'] = df['P_emaildomain'].apply(lambda x: x.split('.')[0])
+    # df['R_email_prefix'] = df['R_emaildomain'].apply(lambda x: x.split('.')[0])
+    # # M_Feature
+    # M_cols = ['M1','M2','M3','M5','M6','M7','M8','M9']
+    # df['M_sum'] = df[M_cols].sum(axis=1).astype(np.int8)
+    # df['M_na'] = df[M_cols].isna().sum(axis=1).astype(np.int8)
+    # df['M_type'] = ''
+    # for col in M_cols:
+    #     df['M_type'] = '_'+df[col].astype(str)
+    # # C_Feature
+    # C_cols = ['C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12','C13','C14']
+    # df['C_sum'] = 0
+    # df['C_null'] = 0
+    # for col in C_cols:
+    #     df['C_sum'] += np.where(df[col]==1,1,0)
+    #     df['C_null'] += np.where(df[col]==0,1,0)
+    #     valid_values = df[col].value_counts()
+    #     valid_values = valid_values[valid_values>1000]
+    #     valid_values = list(valid_values.index)
+    #     df[col+'_valid'] = np.where(df[col].isin(valid_values),1,0)
+    # # Device info
+    # df['DeviceInfo'] = df['DeviceInfo'].fillna('unknown_device').str.lower()
+    # df['DeviceInfo_c'] = df['DeviceInfo']
+    # device_match_dict = {
+    # 'sm':'sm-',
+    # 'sm':'samsung',
+    # 'huawei':'huawei',
+    # 'moto':'moto',
+    # 'rv':'rv:',
+    # 'trident':'trident',
+    # 'lg':'lg-',
+    # 'htc':'htc',
+    # 'blade':'blade',
+    # 'windows':'windows',
+    # 'lenovo':'lenovo',
+    # 'linux':'linux',
+    # 'f3':'f3',
+    # 'f5':'f5'
+    # }
+    # for dev_type_s, dev_type_o in device_match_dict.items():
+    #     df['DeviceInfo_c'] = df['DeviceInfo_c'].apply(lambda x: dev_type_s if dev_type_o in x else x)
+    # df['DeviceInfo_c'] = df['DeviceInfo_c'].apply(lambda x: 'other_d_type' if x not in device_match_dict else x)
+    # # Device info2
+    # df['id_30'] = df['id_30'].fillna('unknown_device').str.lower()
+    # df['id_30_c'] = df['id_30']
+    # device_match_dict = {
+    # 'ios':'ios',
+    # 'windows':'windows',
+    # 'mac':'mac',
+    # 'android':'android'
+    # }
+    # for dev_type_s, dev_type_o in device_match_dict.items():
+    #     df['id_30_c'] = df['id_30_c'].apply(lambda x: dev_type_s if dev_type_o in x else x)
+    # df['id_30_v'] = df['id_30'].apply(lambda x: ''.join([i for i in x if i.isdigit()]))
+    # df['id_30_v'] = np.where(df['id_30_v']!='', df['id_30_v'], 0).astype(int)
+    ########################### Anomaly Search in geo information
+    # df['bank_type'] = df['card3'].astype(str)+'_'+df['card5'].astype(str)
+    # df['address_match'] = df['bank_type'].astype(str)+'_'+df['addr2'].astype(str)
+
+    # https://www.kaggle.com/kyakovlev/ieee-gb-2-make-amount-useful-again?scriptVersionId=18889353
+    # Browser feature
+    # train['id_31'] = train['id_31'].fillna('unknown_br').str.lower()
+    # test['id_31']  = test['id_31'].fillna('unknown_br').str.lower()
+
+    # train['id_31'] = train['id_31'].apply(lambda x: x.replace('webview','webvw'))
+    # test['id_31']  = test['id_31'].apply(lambda x: x.replace('webview','webvw'))
+
+    # train['id_31'] = train['id_31'].apply(lambda x: x.replace('for',' '))
+    # test['id_31']  = test['id_31'].apply(lambda x: x.replace('for',' '))
+
+    # browser_list = set(list(train['id_31'].unique()) + list(test['id_31'].unique()))
+    # browser_list2 = []
+    # for item in browser_list:
+    #     browser_list2 += item.split(' ')
+    # browser_list2 = list(set(browser_list2))
+
+    # browser_list3 = []
+    # for item in browser_list2:
+    #     browser_list3 += item.split('/')
+    # browser_list3 = list(set(browser_list3))
+
+    # for item in browser_list3:
+    #     train['id_31_e_'+item] = np.where(train['id_31'].str.contains(item),1,0).astype(np.int8)
+    #     test['id_31_e_'+item] = np.where(test['id_31'].str.contains(item),1,0).astype(np.int8)
+    #     if train['id_31_e_'+item].sum()<100:
+    #         del train['id_31_e_'+item], test['id_31_e_'+item]
+
+    # train['id_31_v'] = train['id_31'].apply(lambda x: ''.join([i for i in x if i.isdigit()]))
+    # test['id_31_v'] = test['id_31'].apply(lambda x: ''.join([i for i in x if i.isdigit()]))
+
+    # train['id_31_v'] = np.where(train['id_31_v']!='', train['id_31_v'], 0).astype(int)
+    # test['id_31_v'] = np.where(test['id_31_v']!='', test['id_31_v'], 0).astype(int)
+
+
+    ########################### Anomaly Search in geo information
+    # for col in ['address_match','bank_type']:
+    #     temp_df = pd.concat([train[[col]], test[[col]]])
+    #     temp_df[col] = np.where(temp_df[col].str.contains('nan'), np.nan, temp_df[col])
+    #     temp_df = temp_df.dropna()
+    #     fq_encode = temp_df[col].value_counts().to_dict()
+    #     train[col] = train[col].map(fq_encode)
+    #     test[col]  = test[col].map(fq_encode)
+    # train['address_match'] = train['address_match']/train['bank_type']
+    # test['address_match']  = test['address_match']/test['bank_type']
+    # drop_list = ['bank_type']
+    # train.drop(drop_list,axis=1,inplace=True)
+    # test.drop(drop_list,axis=1,inplace=True)
+
+
+    変化なし
+        # https://www.kaggle.com/iasnobmatsu/xgb-model-with-feature-engineering
+    # df.loc[df["id_31"]=="samsung browser 7.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="opera 53.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="mobile safari 10.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="google search application 49.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="firefox 60.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="edge 17.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 69.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 67.0 for android",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 63.0 for android",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 63.0 for ios",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 64.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 64.0 for android",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 64.0 for ios",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 65.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 65.0 for android",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 65.0 for ios",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 66.0",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 66.0 for android",'lastest_browser']=1
+    # df.loc[df["id_31"]=="chrome 66.0 for ios",'lastest_browser']=1

@@ -106,8 +106,8 @@ df = train
 
 make_train = pd.read_pickle('../src/make_data/data/017_train.pkl')
 
-lgb_model = pickle.load(open('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/model/030_lgb.sav', 'rb'))
+lgb_model = pickle.load(open('/Users/zakopuro/Code/python_code/kaggle/IEEE_Fraud_Detection/model/036_lgb.sav', 'rb'))
 
-lgb.plot_importance(lgb_model,max_num_features=30)
+lgb.plot_importance(lgb_model,max_num_features=20)
 
 
