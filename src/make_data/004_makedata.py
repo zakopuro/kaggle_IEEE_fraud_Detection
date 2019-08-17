@@ -40,22 +40,7 @@ def define_indexes(df):
 
 
 def make_featuter(df):
-    df['TransactionAmt_to_mean_card1'] = df['TransactionAmt'] / df.groupby(['card1'])['TransactionAmt'].transform('mean')
-    df['TransactionAmt_to_mean_card4'] = df['TransactionAmt'] / df.groupby(['card4'])['TransactionAmt'].transform('mean')
-    df['TransactionAmt_to_std_card1'] = df['TransactionAmt'] / df.groupby(['card1'])['TransactionAmt'].transform('std')
-    df['TransactionAmt_to_std_card4'] = df['TransactionAmt'] / df.groupby(['card4'])['TransactionAmt'].transform('std')
-    df['id_02_to_mean_card1'] = df['id_02'] / df.groupby(['card1'])['id_02'].transform('mean')
-    df['id_02_to_mean_card4'] = df['id_02'] / df.groupby(['card4'])['id_02'].transform('mean')
-    df['id_02_to_std_card1'] = df['id_02'] / df.groupby(['card1'])['id_02'].transform('std')
-    df['id_02_to_std_card4'] = df['id_02'] / df.groupby(['card4'])['id_02'].transform('std')
-    df['D15_to_mean_card1'] = df['D15'] / df.groupby(['card1'])['D15'].transform('mean')
-    df['D15_to_mean_card4'] = df['D15'] / df.groupby(['card4'])['D15'].transform('mean')
-    df['D15_to_std_card1'] = df['D15'] / df.groupby(['card1'])['D15'].transform('std')
-    df['D15_to_std_card4'] = df['D15'] / df.groupby(['card4'])['D15'].transform('std')
-    df['D15_to_mean_addr1'] = df['D15'] / df.groupby(['addr1'])['D15'].transform('mean')
-    df['D15_to_mean_card4'] = df['D15'] / df.groupby(['card4'])['D15'].transform('mean')
-    df['D15_to_std_addr1'] = df['D15'] / df.groupby(['addr1'])['D15'].transform('std')
-    df['D15_to_std_card4'] = df['D15'] / df.groupby(['card4'])['D15'].transform('std')
+
     df['Missing_count'] = df.isna().sum(axis=1)
     df['TransactionAmt_Log'] = np.log(df['TransactionAmt'])
     df['card1/card2'] = np.log(df['card1']/df['card2'])
@@ -66,6 +51,25 @@ def make_featuter(df):
     df['card1*addr2'] = df['card1'] * df['addr2']
     df['card2*addr1'] = np.log(df['card2'] * df['addr1'])
     df['card2*addr2'] = df['card2'] * df['addr2']
+    # card1_label
+    card1_cut = [0,2500,5000,7500,10000,12500,15000,17500,20000]
+    labels = [0,1,2,3,4,5,6,7]
+    df['card1_cut'] = pd.cut(df['card1'],bins=card1_cut,labels=labels)
+    card2_cut = [99,200,300,400,500,600]
+    labels = [0,1,2,3,4]
+    df['card2_cut'] = pd.cut(df['card2'],bins=card2_cut,labels=labels)
+
+    i_col = ['card1','card2','card4']
+    for col in i_col:
+        df['TransactionAmt_to_mean_'+col] = df['TransactionAmt'] / df.groupby([col])['TransactionAmt'].transform('mean')
+        df['TransactionAmt_to_std_'+col] = df['TransactionAmt'] / df.groupby([col])['TransactionAmt'].transform('std')
+        df['id_02_to_mean_'+col] = df['id_02'] / df.groupby([col])['id_02'].transform('mean')
+        df['id_02_to_std_'+col] = df['id_02'] / df.groupby([col])['id_02'].transform('std')
+        df['D15_to_mean_'+col] = df['D15'] / df.groupby([col])['D15'].transform('mean')
+        df['D15_to_std_'+col] = df['D15'] / df.groupby([col])['D15'].transform('std')
+    df['D15_to_mean_addr1'] = df['D15'] / df.groupby(['addr1'])['D15'].transform('mean')
+    df['D15_to_std_addr1'] = df['D15'] / df.groupby(['addr1'])['D15'].transform('std')
+
 
     # https://www.kaggle.com/kyakovlev/ieee-gb-2-make-amount-useful-again?scriptVersionId=18889353
     df['uid'] = df['card1'].astype(str)+'_'+df['card2'].astype(str)+'_'+df['card3'].astype(str)+'_'+df['card4'].astype(str)
@@ -105,46 +109,12 @@ def make_featuter(df):
     return df
 
 def make_featuter2(train,test):
-    card1_temp = pd.concat([train['card1'], test['card1']], ignore_index=True).value_counts(dropna=False)
-    train['card1_count'] = train['card1'].map(card1_temp)
-    test['card1_count'] = test['card1'].map(card1_temp)
-    card2_temp = pd.concat([train['card2'], test['card2']], ignore_index=True).value_counts(dropna=False)
-    train['card2_count'] = train['card2'].map(card2_temp)
-    test['card2_count'] = test['card2'].map(card2_temp)
     # https://www.kaggle.com/iasnobmatsu/xgb-model-with-feature-engineering
-    train['card3_count_full'] = train['card3'].map(pd.concat([train['card3'], test['card3']], ignore_index=True).value_counts(dropna=False))
-    test['card3_count_full'] = test['card3'].map(pd.concat([train['card3'], test['card3']], ignore_index=True).value_counts(dropna=False))
-    train['card4_count_full'] = train['card4'].map(pd.concat([train['card4'], test['card4']], ignore_index=True).value_counts(dropna=False))
-    test['card4_count_full'] = test['card4'].map(pd.concat([train['card4'], test['card4']], ignore_index=True).value_counts(dropna=False))
-    train['card5_count_full'] = train['card5'].map(pd.concat([train['card5'], test['card5']], ignore_index=True).value_counts(dropna=False))
-    test['card5_count_full'] = test['card5'].map(pd.concat([train['card5'], test['card5']], ignore_index=True).value_counts(dropna=False))
-    train['card6_count_full'] = train['card6'].map(pd.concat([train['card6'], test['card6']], ignore_index=True).value_counts(dropna=False))
-    test['card6_count_full'] = test['card6'].map(pd.concat([train['card6'], test['card6']], ignore_index=True).value_counts(dropna=False))
-    train['addr1_count_full'] = train['addr1'].map(pd.concat([train['addr1'], test['addr1']], ignore_index=True).value_counts(dropna=False))
-    test['addr1_count_full'] = test['addr1'].map(pd.concat([train['addr1'], test['addr1']], ignore_index=True).value_counts(dropna=False))
-    train['addr2_count_full'] = train['addr2'].map(pd.concat([train['addr2'], test['addr2']], ignore_index=True).value_counts(dropna=False))
-    test['addr2_count_full'] = test['addr2'].map(pd.concat([train['addr2'], test['addr2']], ignore_index=True).value_counts(dropna=False))
-
-    # 自作
-    # train['dist1_count_full'] = train['dist1'].map(pd.concat([train['dist1'], test['dist1']], ignore_index=True).value_counts(dropna=False))
-    # test['dist1_count_full'] = test['dist1'].map(pd.concat([train['dist1'], test['dist1']], ignore_index=True).value_counts(dropna=False))
-    # train['dist2_count_full'] = train['dist2'].map(pd.concat([train['dist2'], test['dist2']], ignore_index=True).value_counts(dropna=False))
-    # test['dist2_count_full'] = test['dist2'].map(pd.concat([train['dist2'], test['dist2']], ignore_index=True).value_counts(dropna=False))
-    train['card1/card2_count_full'] = train['card1/card2'].map(pd.concat([train['card1/card2'], test['card1/card2']], ignore_index=True).value_counts(dropna=False))
-    test['card1/card2_count_full'] = test['card1/card2'].map(pd.concat([train['card1/card2'], test['card1/card2']], ignore_index=True).value_counts(dropna=False))
-    train['ccard1/addr1count_full'] = train['card1/addr1'].map(pd.concat([train['card1/addr1'], test['card1/addr1']], ignore_index=True).value_counts(dropna=False))
-    test['card1/addr1_count_full'] = test['card1/addr1'].map(pd.concat([train['card1/addr1'], test['card1/addr1']], ignore_index=True).value_counts(dropna=False))
-    train['card2/addr1_count_full'] = train['card2/addr1'].map(pd.concat([train['card2/addr1'], test['card2/addr1']], ignore_index=True).value_counts(dropna=False))
-    test['card2/addr1_count_full'] = test['card2/addr1'].map(pd.concat([train['card2/addr1'], test['card2/addr1']], ignore_index=True).value_counts(dropna=False))
-    train['card1*card2_count_full'] = train['card1*card2'].map(pd.concat([train['card1*card2'], test['card1*card2']], ignore_index=True).value_counts(dropna=False))
-    test['card1*card2_count_full'] = test['card1*card2'].map(pd.concat([train['card1*card2'], test['card1*card2']], ignore_index=True).value_counts(dropna=False))
-    train['card1*addr2_count_full'] = train['card1*addr2'].map(pd.concat([train['card1*addr2'], test['card1*addr2']], ignore_index=True).value_counts(dropna=False))
-    test['card1*addr2_count_full'] = test['card1*addr2'].map(pd.concat([train['card1*addr2'], test['card1*addr2']], ignore_index=True).value_counts(dropna=False))
-    train['card2*addr2_count_full'] = train['card2*addr2'].map(pd.concat([train['card2*addr2'], test['card2*addr2']], ignore_index=True).value_counts(dropna=False))
-    test['card2*addr2_count_full'] = test['card2*addr2'].map(pd.concat([train['card2*addr2'], test['card2*addr2']], ignore_index=True).value_counts(dropna=False))
-    train['card2*addr1_count_full'] = train['card2*addr1'].map(pd.concat([train['card2*addr1'], test['card2*addr1']], ignore_index=True).value_counts(dropna=False))
-    test['card2*addr1_count_full'] = test['card2*addr1'].map(pd.concat([train['card2*addr1'], test['card2*addr1']], ignore_index=True).value_counts(dropna=False))
-
+    count_col = ['card1','card2','card3','card4','card5','card6','addr1','addr2','card1/card2','card1/addr1','card2/addr1',
+                'card1*card2','card1*addr2','card2*addr2','card2*addr1','id_34','id_36']
+    for col in count_col:
+        train[col+'_count_full'] = train[col].map(pd.concat([train[col], test[col]], ignore_index=True).value_counts(dropna=False))
+        test[col+'_count_full'] = test[col].map(pd.concat([train[col], test[col]], ignore_index=True).value_counts(dropna=False))
 
     train['TransactionAmt_decimal'] = ((train['TransactionAmt'] - train['TransactionAmt'].astype(int)) * 1000).astype(int)
     test['TransactionAmt_decimal'] = ((test['TransactionAmt'] - test['TransactionAmt'].astype(int)) * 1000).astype(int)
@@ -165,13 +135,14 @@ def make_featuter2(train,test):
         train[feature + '_count_dist'] = train[feature].map(train[feature].value_counts(dropna=False))
         test[feature + '_count_dist'] = test[feature].map(test[feature].value_counts(dropna=False))
 
-    i_cols = ['card1','card2','card3','card5','card1/card2','card1/addr1','card2/addr1','card1*card2','card1*addr1','card1*addr2','card2*addr1','card2*addr2',
-          'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12','C13','C14',
-          'D1','D2','D3','D4','D5','D6','D7','D8','D9',
-          'addr1','addr2',
-          'dist1','dist2',
-          'P_emaildomain', 'R_emaildomain',
-         ]
+    i_cols = ['card1','card2','card3','card5','card1/card2','card1/addr1','card2/addr1',
+              'card1*card2','card1*addr1','card1*addr2','card2*addr1','card2*addr2',
+              'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12','C13','C14',
+              'D1','D2','D3','D4','D5','D6','D7','D8','D9',
+              'addr1','addr2',
+              'dist1','dist2',
+              'P_emaildomain', 'R_emaildomain',
+            ]
     for col in i_cols:
         temp_df = pd.concat([train[[col]], test[[col]]])
         fq_encode = temp_df[col].value_counts().to_dict()
@@ -219,8 +190,8 @@ def main():
     df_train,df_test = make_featuter2(df_train,df_test)
     df_train,df_test = one_val(df_train,df_test)
     print('feature2')
-    df_train.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/023_train.pkl')
-    df_test.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/023_test.pkl')
+    df_train.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/024_train.pkl')
+    df_test.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/024_test.pkl')
 
 if __name__ == "__main__":
     main()
