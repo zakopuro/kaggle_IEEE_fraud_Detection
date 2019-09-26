@@ -115,6 +115,26 @@
     # train.drop(drop_list,axis=1,inplace=True)
     # test.drop(drop_list,axis=1,inplace=True)
 
+    # binning
+    # card1_cut = [0,2500,5000,7500,10000,12500,15000,17500,20000]
+    # df['card1_cut'] = pd.cut(df['card1'],bins=card1_cut,labels=False)
+    # card2_cut = list([99,200,300,400,500,600])
+    # df['card2_cut'] = pd.cut(df['card2'],bins=card2_cut,labels=False)
+    # addr1_cut = [99,200,300,400,600]
+    # df['addr1_cut'] = pd.cut(df['addr1'],bins=addr1_cut,labels=False)
+
+    df['card1-card2'] = df['card1'] - df['card2']
+    df['card1+card2'] = df['card1'] + df['card2']
+    df['D2*D4'] = df['D2'] * df['D4']
+    df['D2+D4'] = df['D2'] - df['D4']
+
+    # card1_label
+    card1_cut = [0,2500,5000,7500,10000,12500,15000,17500,20000]
+    labels = [0,1,2,3,4,5,6,7]
+    df['card1_cut'] = pd.cut(df['card1'],bins=card1_cut,labels=labels)
+    card2_cut = [99,200,300,400,500,600]
+    labels = [0,1,2,3,4]
+    df['card2_cut'] = pd.cut(df['card2'],bins=card2_cut,labels=labels)
 
     変化なし
         # https://www.kaggle.com/iasnobmatsu/xgb-model-with-feature-engineering

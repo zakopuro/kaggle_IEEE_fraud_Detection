@@ -1,129 +1,105 @@
-import pandas as pd
+# https://www.kaggle.com/timon88/lgbm-baseline-small-fe-no-blend
+# https://www.kaggle.com/andrew60909/lgb-starter-r
 import numpy as np
-import xgboost as xgb
+import pandas as pd
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
+from tqdm import tqdm
+from sklearn.preprocessing import LabelEncoder
+import datetime
+# import lightgbm as lgb
+import xgboost as xgb
 import pickle
-from sklearn.model_selection import train_test_split,TimeSeriesSplit
-from imblearn.under_sampling import RandomUnderSampler
-
-def calibration(y_proba, beta):
-    return y_proba / (y_proba + (1 - y_proba) / beta)
-
+import logging
+import subprocess
 
 def main():
-    df_train = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/007_train.csv',index_col='TransactionID')
-    df_test = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/007_test.csv',index_col='TransactionID')
-    # fti = pd.read_csv('../IEEE_Fraud_Detection/src/make_data/data/fti_list.csv')
+    df_train = pd.read_pickle('../IEEE_Fraud_Detection/src/make_data/data/030_train.pkl')
+    df_test = pd.read_pickle('../IEEE_Fraud_Detection/src/make_data/data/030_test.pkl')
+    target = df_train['isFraud'].copy()
+    X_train = df_train.drop('isFraud',axis=1)
+    X_train.drop(['TransactionDT'],axis=1,inplace=True)
+    X_test = df_test.drop(['TransactionDT'],axis=1)
+    del df_train
+    del df_test
+
+    for f in tqdm(X_train.select_dtypes(include='category').columns.tolist() + X_train.select_dtypes(include='object').columns.tolist()):
+        lbl = LabelEncoder()
+        lbl.fit(list(X_train[f].values) + list(X_test[f].values))
+        X_train[f] = lbl.transform(list(X_train[f].values))
+        X_test[f] = lbl.transform(list(X_test[f].values))
+    # drop_list = ['V41','id_29','V269','V302','V252','id_12','V31','V195','V334','id_35','V138']
+    # X_train.drop(drop_list, axis=1, inplace=True)
+    # X_test.drop(drop_list, axis=1, inplace=True)
+    X_train = X_train.fillna(-999)
+    X_test = X_test.fillna(-999)
+
+    params = {
+        'objective': 'binary:logistic',
+        'eval_metric':'auc',
+        'n_estimators':1000,
+        'max_depth':9,
+        'learning_rate':0.048,
+        'subsample':0.85,
+        'colsample_bytree':0.85,
+        'missing':-999,
+        # tree_method='gpu_hist',  # THE MAGICAL PARAMETER
+        'reg_alpha':0.15,
+        'reg_lamdba':0.85
+        }
+    splits = 5
+    folds = KFold(n_splits = splits)
+    oof = np.zeros(len(X_train))
+    predictions = np.zeros(len(X_test))
+
+    log_file = '../IEEE_Fraud_Detection/src/LOG/071_xgb.log'
+    logging.basicConfig(filename=log_file)
+    for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train.values, target.values)):
+        print("Fold {}".format(fold_))
+        logging.critical("Fold {}".format(fold_))
+
+        train_df, y_train_df = X_train.iloc[trn_idx], target.iloc[trn_idx]
+        valid_df, y_valid_df = X_train.iloc[val_idx], target.iloc[val_idx]
+
+        trn_data = xgb.DMatrix(train_df, label=y_train_df)
+        val_data = xgb.DMatrix(valid_df, label=y_valid_df)
+
+        xgb_model = xgb.train(params=params,
+                        dtrain=trn_data,
+                        num_boost_round=10000,
+                        evals = [(trn_data,'Train'), (val_data,'Val')],
+                        verbose_eval=500,
+                        early_stopping_rounds=500)
+
+        pred = xgb_model.predict(val_data)
+        oof[val_idx] = pred
+        auc_score = roc_auc_score(y_valid_df, pred)
+        print( "  auc = ", auc_score )
+        logging.critical("  auc = " + str(auc_score))
+
+        predictions += xgb_model.predict(xgb.DMatrix(X_test)) / splits
+
+        filename = '../IEEE_Fraud_Detection/model/071_xgb' + str(fold_)+'.sav'
+        pickle.dump(xgb_model,open(filename,'wb'))
+
+        del xgb_model
+        del pred
+        del train_df
+        del y_train_df
+        del valid_df
+        del y_valid_df
+        del trn_data
+        del val_data
+
+
     sub = pd.read_csv('../IEEE_Fraud_Detection/input/sample_submission.csv')
-    print('data')
-    # fti_drop_list = list(fti['feat'].head(30))
-    X_train = df_train.drop(['isFraud','TransactionDT'],axis=1)
-    # X_train = X_train.drop(fti_drop_list,axis=1)
-    y_train = df_train['isFraud'].copy()
-    X_test = df_test.copy()
-    X_test = X_test.drop('TransactionDT',axis=1)
-
-
-    xgb_paramas = {
-                    'n_estimators':500,
-                    'max_depth':9,
-                    'learning_rate':0.05,
-                    'subsample':0.9,
-                    'colsample_bytree':0.9,
-                    'missing':-999,
-                    'gamma':0.2,
-                    'alpha':4,
-                    # 'tree_method':'hist',
-                    'eval_metric': 'auc'
-    }
-        # n_estimators=500,
-        # max_depth=9,
-        # learning_rate=0.05,
-        # subsample=0.9,
-        # colsample_bytree=0.9,
-        # gamma = 0.2,
-        # alpha = 4,
-        # missing = -1,
-        # tree_method='gpu_hist'
-
-
-    # xgb_model = xgb.XGBClassifier(**xgb_paramas)
-    # xgb_params = {
-    #     "n_estimators": 2000,
-    #     "seed": 4,
-    #     # "silent": True,
-    #     "max_depth": 9,
-    #     "learning_rate": 0.03,
-    #     "subsample": 0.9,
-    #     "colsample_bytree": 0.9,
-    #     "tree_method": "hist",
-    #     # "objective": "binary:logistic",
-    #     'missing':-999,
-    #     'gamma':0.2,
-    #     'alpha':4,
-    #     "eval_metric": "auc"
-    # }
-
-
-
-
-    # 時系列データの交差検証
-    # train_start_index = 0
-    # train_end_index = int(len(df_train)/2)
-    # skip = int(len(df_train)/6)
-    # horizon = int(len(df_train)/6)
-    # SPLITS = 3
-    # for _ in range(SPLITS):
-    #     test_start_index = train_end_index
-    #     test_end_index = test_start_index + horizon
-
-    #     X_train = df_train[train_start_index:train_end_index]
-    #     X_test = df_train[test_start_index:test_end_index]
-
-    #     train_start_index += skip
-    #     train_end_index += skip
-    # xgb_model.fit(X_train,y_train)
-    # アンダーサンプリング
-    # smpler = RandomUnderSampler(sampling_strategy={0:y_train.sum(),1:y_train.sum()})
-    # X_train_sampled,y_train_sampled=smpler.fit_sample(X_train,y_train)
-    # X_train_sampled = pd.DataFrame(X_train_sampled,columns=X_train.columns)
-    # # y_train_sampled = pd.DataFrame(y_train_sampled,columns=y_train.columns)
-
-    # sampling_rate = y_train.sum()/len(y_train)
-    # xgb_model = xgb.XGBClassifier(**xgb_paramas)
-    # xgb_model.fit(X_train_sampled,y_train_sampled)
-    # print('test')
-    # y_preds = calibration(xgb_model.predict_proba(X_test)[:,1],sampling_rate)
-
-
-    n_fold = 5
-    folds = TimeSeriesSplit(n_splits=n_fold)
-    folds = KFold(n_splits=n_fold)
-    # EPOCHS = 3
-    # kf = KFold(n_splits = EPOCHS, shuffle = True)
-    y_preds = np.zeros(sub.shape[0])
-    y_oof = np.zeros(y_train.shape[0])
-
-    for tr_idx, val_idx in folds.split(X_train, y_train):
-        xgb_model = xgb.XGBClassifier(**xgb_paramas)
-
-        X_tr, X_vl = X_train.iloc[tr_idx, :], X_train.iloc[val_idx, :]
-        y_tr, y_vl = y_train.iloc[tr_idx], y_train.iloc[val_idx]
-        xgb_model.fit(X_tr,y_tr)
-        y_pred_train = xgb_model.predict_proba(X_vl)[:,1]
-        y_oof[val_idx] = y_pred_train
-        print('ROC AUC {}'.format(roc_auc_score(y_vl, y_pred_train)))
-        y_preds+= xgb_model.predict_proba(X_test)[:,1] / n_fold
-
-    print('fit')
-    filename = '../IEEE_Fraud_Detection/model/021_xgb.sav'
-    pickle.dump(xgb_model,open(filename,'wb'))
-    # sub['isFraud'] = xgb_model.predict_proba(X_test)[]
-    # sub['isFraud'] = xgb_model.predict_proba(X_test)[:,1]
-    sub['isFraud'] = y_preds
-    sub.to_csv('../IEEE_Fraud_Detection/output/021_sub_xgb.csv',index=False)
+    sub['isFraud'] = predictions
+    sub.to_csv('../IEEE_Fraud_Detection/output/071_sub_xgb.csv',index=False)
     print('end')
+    cmd = "curl -X POST https://hooks.slack.com/services/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 -d \"{'text': %s }\"" % (auc_score)
+    subprocess.run(cmd,shell=True)
+    submit_cmd = 'kaggle competitions submit -c ieee-fraud-detection -f ../IEEE_Fraud_Detection/output/071_sub_xgb.csv -m "xgboostで試す"'
+    subprocess.run(submit_cmd,shell=True)
 
 
 if __name__ == "__main__":

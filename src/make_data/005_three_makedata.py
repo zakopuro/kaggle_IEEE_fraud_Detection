@@ -5,82 +5,7 @@ from tqdm import tqdm
 from sklearn.preprocessing import LabelEncoder
 import datetime
 import itertools
-from tsfresh import extract_features
-from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
-
-START_DATE = datetime.datetime.strptime('2017-11-30', '%Y-%m-%d')
-
-# https://www.kaggle.com/kyakovlev/ieee-fe-with-some-eda
-def timeblock_frequency_encoding(train_df, test_df, periods, columns, 
-                                 with_proportions=True, only_proportions=False):
-    for period in periods:
-        for col in columns:
-            new_col = col +'_'+ period
-            train_df[new_col] = train_df[col].astype(str)+'_'+train_df[period].astype(str)
-            test_df[new_col]  = test_df[col].astype(str)+'_'+test_df[period].astype(str)
-
-            temp_df = pd.concat([train_df[[new_col]], test_df[[new_col]]])
-            fq_encode = temp_df[new_col].value_counts().to_dict()
-
-            train_df[new_col] = train_df[new_col].map(fq_encode)
-            test_df[new_col]  = test_df[new_col].map(fq_encode)
-
-            if only_proportions:
-                train_df[new_col] = train_df[new_col]/train_df[period+'_total']
-                test_df[new_col]  = test_df[new_col]/test_df[period+'_total']
-
-            if with_proportions:
-                train_df[new_col+'_proportions'] = train_df[new_col]/train_df[period+'_total']
-                test_df[new_col+'_proportions']  = test_df[new_col]/test_df[period+'_total']
-
-    return train_df, test_df
-
-# https://www.kaggle.com/kyakovlev/ieee-fe-with-some-eda
-def values_normalization(dt_df, periods, columns):
-    for period in periods:
-        for col in columns:
-            new_col = col +'_'+ period
-            dt_df[col] = dt_df[col].astype(float)  
-
-            temp_min = dt_df.groupby([period])[col].agg(['min']).reset_index()
-            temp_min.index = temp_min[period].values
-            temp_min = temp_min['min'].to_dict()
-
-            temp_max = dt_df.groupby([period])[col].agg(['max']).reset_index()
-            temp_max.index = temp_max[period].values
-            temp_max = temp_max['max'].to_dict()
-
-            temp_mean = dt_df.groupby([period])[col].agg(['mean']).reset_index()
-            temp_mean.index = temp_mean[period].values
-            temp_mean = temp_mean['mean'].to_dict()
-
-            temp_std = dt_df.groupby([period])[col].agg(['std']).reset_index()
-            temp_std.index = temp_std[period].values
-            temp_std = temp_std['std'].to_dict()
-
-            dt_df['temp_min'] = dt_df[period].map(temp_min)
-            dt_df['temp_max'] = dt_df[period].map(temp_max)
-            dt_df['temp_mean'] = dt_df[period].map(temp_mean)
-            dt_df['temp_std'] = dt_df[period].map(temp_std)
-
-            dt_df[new_col+'_min_max'] = (dt_df[col]-dt_df['temp_min'])/(dt_df['temp_max']-dt_df['temp_min'])
-            dt_df[new_col+'_std_score'] = (dt_df[col]-dt_df['temp_mean'])/(dt_df['temp_std'])
-            del dt_df['temp_min'],dt_df['temp_max'],dt_df['temp_mean'],dt_df['temp_std']
-    return dt_df
-
-
-def frequency_encoding(train_df, test_df, columns, self_encoding=False):
-    for col in columns:
-        temp_df = pd.concat([train_df[[col]], test_df[[col]]])
-        fq_encode = temp_df[col].value_counts(dropna=False).to_dict()
-        if self_encoding:
-            train_df[col] = train_df[col].map(fq_encode)
-            test_df[col]  = test_df[col].map(fq_encode)
-        else:
-            train_df[col+'_fq_enc'] = train_df[col].map(fq_encode)
-            test_df[col+'_fq_enc']  = test_df[col].map(fq_encode)
-    return train_df, test_df
 
 def corret_card_id(x):
     x=x.replace('.0','')
@@ -99,22 +24,6 @@ def define_indexes(df):
     # df['dow'] = df['TransactionDT'].dt.dayofweek
     # df['hour'] = df['TransactionDT'].dt.hour
     # df['day'] = df['TransactionDT'].dt.day
-    dates_range = pd.date_range(start='2017-10-01', end='2019-01-01')
-    us_holidays = calendar().holidays(start=dates_range.min(), end=dates_range.max())
-    df['DT'] = df['TransactionDT'].apply(lambda x: (START_DATE + datetime.timedelta(seconds = x)))
-    df['DT_M'] = ((df['DT'].dt.year-2017)*12 + df['DT'].dt.month).astype(np.int8)
-    df['DT_W'] = ((df['DT'].dt.year-2017)*52 + df['DT'].dt.weekofyear).astype(np.int8)
-    df['DT_D'] = ((df['DT'].dt.year-2017)*365 + df['DT'].dt.dayofyear).astype(np.int16)
-    df['DT_hour'] = (df['DT'].dt.hour).astype(np.int8)
-    df['DT_day_week'] = (df['DT'].dt.dayofweek).astype(np.int8)
-    df['DT_day_month'] = (df['DT'].dt.day).astype(np.int8)
-    # Possible solo feature
-    df['is_december'] = df['DT'].dt.month
-    df['is_december'] = (df['is_december']==12).astype(np.int8)
-    # Holidays
-    df['is_holiday'] = (df['DT'].dt.date.astype('datetime64').isin(us_holidays)).astype(np.int8)
-
-
    
     # create card ID 
     cards_cols= ['card1', 'card2', 'card3', 'card5']
@@ -132,68 +41,6 @@ def define_indexes(df):
 
 def make_featuter(df):
 
-    #################### tsfresh ################################3
-    # df_temp = df.loc[:,['card1','TransactionDT']]
-    # # df_temp['card2'] = df_temp['card2'].fillna(df_temp['card2'].mean())
-    # extracted_features = extract_features(df_temp, column_id='TransactionDT')
-    # extracted_features.index.names = ['TransactionDT']
-    # extracted_features = extracted_features.dropna(how='any',axis=1)
-    # df = pd.merge(df,extracted_features,on='TransactionDT',how='left')
-    # del df_temp
-    # del extracted_features
-
-    # https://www.kaggle.com/kyakovlev/ieee-fe-with-some-eda
-    df['bank_type'] = df['card3'].astype(str) +'_'+ df['card5'].astype(str)
-    encoding_mean = {
-                    1: ['DT_D','DT_hour','_hour_dist','DT_hour_mean'],
-                    2: ['DT_W','DT_day_week','_week_day_dist','DT_day_week_mean'],
-                    3: ['DT_M','DT_day_month','_month_day_dist','DT_day_month_mean'],
-                    }
-    encoding_best = {
-                    1: ['DT_D','DT_hour','_hour_dist_best','DT_hour_best'],
-                    2: ['DT_W','DT_day_week','_week_day_dist_best','DT_day_week_best'],
-                    3: ['DT_M','DT_day_month','_month_day_dist_best','DT_day_month_best'],   
-                    }
-    for col in ['card3','card5','bank_type']:
-        for encode in encoding_mean:
-            encode = encoding_mean[encode].copy()
-            new_col = col + '_' + encode[0] + encode[2]
-            df[new_col] = df[col].astype(str) +'_'+ df[encode[0]].astype(str)
-            temp_dict = df.groupby([new_col])[encode[1]].agg(['mean']).reset_index().rename(
-                                                                    columns={'mean': encode[3]})
-            temp_dict.index = temp_dict[new_col].values
-            temp_dict = temp_dict[encode[3]].to_dict()
-            df[new_col] = df[encode[1]] - df[new_col].map(temp_dict)
-
-        for encode in encoding_best:
-            encode = encoding_best[encode].copy()
-            new_col = col + '_' + encode[0] + encode[2]
-            df[new_col] = df[col].astype(str) +'_'+ df[encode[0]].astype(str)
-            temp_dict = df.groupby([col,encode[0],encode[1]])[encode[1]].agg(['count']).reset_index().rename(
-                                                                    columns={'count': encode[3]})
-            temp_dict.sort_values(by=[col,encode[0],encode[3]], inplace=True)
-            temp_dict = temp_dict.drop_duplicates(subset=[col,encode[0]], keep='last')
-            temp_dict[new_col] = temp_dict[col].astype(str) +'_'+ temp_dict[encode[0]].astype(str)
-            temp_dict.index = temp_dict[new_col].values
-            temp_dict = temp_dict[encode[1]].to_dict()
-            df[new_col] = df[encode[1]] - df[new_col].map(temp_dict)
-
-    D_cols = ['D'+str(i) for i in range(1,16)]
-    for col in D_cols:
-        df[col] = df[col].clip(0)
-    df['D9_not_na'] = np.where(df['D9'].isna(),0,1)
-    df['D8_not_same_day'] = np.where(df['D8']>=1,1,0)
-    df['D8_D9_decimal_dist'] = df['D8'].fillna(0)-df['D8'].fillna(0).astype(int)
-    df['D8_D9_decimal_dist'] = ((df['D8_D9_decimal_dist']-df['D9'])**2)**0.5
-    df['D8'] = df['D8'].fillna(-1).astype(int)
-    D_cols.remove('D1')
-    D_cols.remove('D2')
-    D_cols.remove('D9')
-    periods = ['DT_D','DT_W','DT_M']
-    df = values_normalization(df, periods, D_cols)
-
-
-
     df['Missing_count'] = df.isna().sum(axis=1)
     df['TransactionAmt_Log'] = np.log(df['TransactionAmt'])
     df['card1/card2'] = np.log(df['card1']/df['card2'])
@@ -205,7 +52,7 @@ def make_featuter(df):
     df['card2*addr1'] = np.log(df['card2'] * df['addr1'])
     df['card2*addr2'] = df['card2'] * df['addr2']
 
-    i_col = ['card1','card2','card4']
+    i_col = ['card1','card2']
     for col in i_col:
         df['TransactionAmt_to_mean_'+col] = df['TransactionAmt'] / df.groupby([col])['TransactionAmt'].transform('mean')
         df['TransactionAmt_to_std_'+col] = df['TransactionAmt'] / df.groupby([col])['TransactionAmt'].transform('std')
@@ -218,7 +65,7 @@ def make_featuter(df):
 
 
     # https://www.kaggle.com/kyakovlev/ieee-gb-2-make-amount-useful-again?scriptVersionId=18889353
-    df['uid'] = df['card1'].astype(str)+'_'+df['card2'].astype(str)+'_'+df['card3'].astype(str)+'_'+df['card4'].astype(str)
+    df['uid'] = df['card1'].astype(str)+'_'+df['card2'].astype(str)+'_'+df['card3'].astype(str)
     df['uid2'] = df['uid'].astype(str)+'_'+df['addr1'].astype(str)+'_'+df['addr2'].astype(str)
     df['TransactionAmt_check'] = np.where(df['TransactionAmt'].isin(df['TransactionAmt']), 1, 0)
     df['TransactionAmt_to_mean_card3'] = df['TransactionAmt'] / df.groupby(['card3'])['TransactionAmt'].transform('mean')
@@ -360,17 +207,8 @@ def make_featuter(df):
     return df
 
 def make_featuter2(train,test):
-    for col in ['DT_M','DT_W','DT_D']:
-        temp_df = pd.concat([train[[col]], test[[col]]])
-        fq_encode = temp_df[col].value_counts().to_dict()
-        train[col+'_total'] = train[col].map(fq_encode)
-        test[col+'_total']  = test[col].map(fq_encode)
-
-
-
-
     # https://www.kaggle.com/iasnobmatsu/xgb-model-with-feature-engineering
-    count_col = ['card1','card2','card3','card4','card5','card6','addr1','addr2','card1/card2','card1/addr1','card2/addr1',
+    count_col = ['card1','card2','card3','card5','card6','addr1','addr2','card1/card2','card1/addr1','card2/addr1',
                 'card1*card2','card1*addr2','card2*addr2','card2*addr1','id_34','id_36']
     for col in count_col:
         train[col+'_count_full'] = train[col].map(pd.concat([train[col], test[col]], ignore_index=True).value_counts(dropna=False))
@@ -408,7 +246,7 @@ def make_featuter2(train,test):
         fq_encode = temp_df[col].value_counts().to_dict()
         train[col+'_fq_enc'] = train[col].map(fq_encode)
         test[col+'_fq_enc']  = test[col].map(fq_encode)
-    for col in ['ProductCD','M4','card4']:
+    for col in ['ProductCD','M4']:
         temp_dict = train.groupby([col])['isFraud'].agg(['mean']).reset_index().rename(
                                                             columns={'mean': col+'_target_mean'})
         temp_dict.index = temp_dict[col].values
@@ -429,9 +267,9 @@ def make_featuter2(train,test):
         test[col]  = test[col].map(fq_encode)
     train['address_match'] = train['address_match']/train['bank_type']
     test['address_match']  = test['address_match']/test['bank_type']
-    # drop_list = ['bank_type']
-    # train.drop(drop_list,axis=1,inplace=True)
-    # test.drop(drop_list,axis=1,inplace=True)
+    drop_list = ['bank_type']
+    train.drop(drop_list,axis=1,inplace=True)
+    test.drop(drop_list,axis=1,inplace=True)
     # https://www.kaggle.com/kyakovlev/ieee-gb-2-make-amount-useful-again?scriptVersionId=18889353
     # Browser feature
     train['id_31'] = train['id_31'].fillna('unknown_br').str.lower()
@@ -465,18 +303,6 @@ def make_featuter2(train,test):
 
     train['id_31_v'] = np.where(train['id_31_v']!='', train['id_31_v'], 0).astype(int)
     test['id_31_v'] = np.where(test['id_31_v']!='', test['id_31_v'], 0).astype(int)
-
-
-    # https://www.kaggle.com/kyakovlev/ieee-fe-with-some-eda
-    i_cols = ['bank_type']
-    periods = ['DT_M','DT_W','DT_D']
-    train, test = timeblock_frequency_encoding(train, test, periods, i_cols,
-                                 with_proportions=False, only_proportions=True)
-
-    for col in ['D1','D2']:
-        for df in [train, test]:
-            df[col+'_scaled'] = df[col]/train[col].max()
-
     return train,test
 
 
@@ -500,30 +326,51 @@ def one_val(train,test):
 
     return train,test
 
-def df_drop(df):
-    drop_list = ['DT','DT_M','bank_type','DT_M_total','DT_W_total','DT_D_total']
-    df = df.drop(drop_list,axis=1)
+
+def make_date(df):
+    START_DATE = '2017-12-01'
+    startdate = datetime.datetime.strptime(START_DATE, '%Y-%m-%d')
+    df['TransactionDT'] = df['TransactionDT'].apply(lambda x: (startdate + datetime.timedelta(seconds = x)))
+
+    # df['year'] = df['TransactionDT'].dt.year
+    df['month'] = df['TransactionDT'].dt.month
+    df['dow'] = df['TransactionDT'].dt.dayofweek
+    df['hour'] = df['TransactionDT'].dt.hour
+    df['day'] = df['TransactionDT'].dt.day
+
     return df
 
 
+
 def main():
-    df_train = pd.read_pickle('../IEEE_Fraud_Detection/input/train.pkl')
-    df_test = pd.read_pickle('../IEEE_Fraud_Detection/input/test.pkl')
-    print('読込')
-    df_train = define_indexes(df_train)
-    df_test = define_indexes(df_test)
-    print('index')
-    df_train = make_featuter(df_train)
-    df_test = make_featuter(df_test)
-    print('feature1')
-    df_train,df_test = make_featuter2(df_train,df_test)
-    # df_train,df_test = one_val(df_train,df_test)
-    print('feature2')
-    df_train = df_drop(df_train)
-    df_test = df_drop(df_test)
-    print('drop')
-    df_train.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/034_train.pkl')
-    df_test.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/034_test.pkl')
+    train = pd.read_pickle('../IEEE_Fraud_Detection/input/train.pkl')
+    test = pd.read_pickle('../IEEE_Fraud_Detection/input/test.pkl')
+    card4_list = train['card4'].unique()
+    train = make_date(train)
+    test = make_date(test)
+    for i,card4 in enumerate(card4_list):
+        if i == 4:
+            df_train = train[train['card4'].isnull()]
+            df_test = test[test['card4'].isnull()]
+        else:
+            df_train = train[train['card4'] == card4]
+            df_test = test[test['card4'] == card4]
+        print(card4)
+        df_train.drop('card4', axis=1, inplace=True)
+        df_test.drop('card4', axis=1, inplace=True)
+
+        print('読込')
+        df_train = define_indexes(df_train)
+        df_test = define_indexes(df_test)
+        print('index')
+        df_train = make_featuter(df_train)
+        df_test = make_featuter(df_test)
+        print('feature1')
+        df_train,df_test = make_featuter2(df_train,df_test)
+        # df_train,df_test = one_val(df_train,df_test)
+        print('feature2')
+        df_train.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/three_data/031_train' +str(card4)+ '.pkl')
+        df_test.to_pickle('../IEEE_Fraud_Detection/src/make_data/data/three_data/031_test'  +str(card4)+ '.pkl')
 
 if __name__ == "__main__":
     main()
